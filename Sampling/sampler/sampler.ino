@@ -16,6 +16,5 @@ void setup() {
 void loop() {
   // If data is available to read
   Serial.println(String(analogRead(sampling_pin)));
-  i += 1;
   delay(sampling_time);
 }
