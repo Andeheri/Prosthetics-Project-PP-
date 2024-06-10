@@ -36,7 +36,7 @@ def main() -> None:
     analog_value_queue = Queue()
     stop_flag = Event()
 
-    analog_signal_thread = Thread(target=recieve_analog_signal, args=(ser, analog_value_queue, conversion_factor, sampling_time / 2, stop_flag), daemon=True)
+    analog_signal_thread = Thread(target=recieve_analog_signal, args=(ser, analog_value_queue, conversion_factor, sampling_time / 2, stop_flag), daemon = True)
     analog_signal_thread.start()
 
     # Graph window

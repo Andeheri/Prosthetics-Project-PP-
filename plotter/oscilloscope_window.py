@@ -5,7 +5,6 @@ import pyqtgraph as pg
 from PyQt5.QtGui import QPalette, QColor, QMouseEvent
 from PyQt5.QtCore import Qt, QPoint
 
-
 class CustomTitleBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -33,7 +32,7 @@ class CustomTitleBar(QWidget):
             QPushButton {
                 background-color: #3a3a3a;
                 color: white;
-                border-radius: 2px;
+                border-radius: 10px;
                 padding: 2px;
             }
             QPushButton:hover {
@@ -89,36 +88,49 @@ class OscilloscopeWindow(QMainWindow):
         self.plot = self.plot_widget.plot(pen=pg.mkPen(color='turquoise'))
         self.plot_widget.setYRange(0, 3.3)  # Assuming the analog value range is 0 to 3.3V
 
-        # Remove x-axis labels
-        self.plot_widget.getAxis('bottom').setStyle(showValues=False)
 
         # Show grid
         self.plot_widget.showGrid(x=True, y=True, alpha=0.5)
         self.plot_widget.setLabel('left', 'Analog Value (V)')
 
+        # X-axis
+        self.plot_widget.getAxis('bottom').setStyle(showValues=False)
+
         self.T = period
         self.sampling_dt = sampling_dt
         self.num_samples = int(self.T / self.sampling_dt)
 
-        # Set the x-axis range to always show 1 second of data
-        self.plot_widget.setXRange(0, self.T)
+        
+        self.plot_widget.setXRange(0, self.T)  # Set the x-axis range to always show T second of data
 
         self.xdata = np.linspace(0, self.T, self.num_samples)
         self.ydata = []
         self.start_time = time.time()
 
+        """
+        -----------------------------------------------------------------------------
+        ------------------------------- Buttons -------------------------------------
+        -----------------------------------------------------------------------------
+        """
+
         # Add a button layout
         self.button_layout = QHBoxLayout()
         self.layout.addLayout(self.button_layout)
 
-        # Create and add buttons
-        self.start_button = QPushButton("Start")
-        self.stop_button = QPushButton("Stop")
-        self.start_button.setStyleSheet(self.button_style())
-        self.stop_button.setStyleSheet(self.button_style())
+        # Recording button
+        self.record_button = QPushButton("Start Recording")
+        self.record_button.setStyleSheet(self.button_style())
+        self.record_button.clicked.connect(self.toggle_recording)
+        self.button_layout.addWidget(self.record_button)
+        self.recording = False
 
-        self.button_layout.addWidget(self.start_button)
-        self.button_layout.addWidget(self.stop_button)
+        # Freeze button
+        self.freeze_button = QPushButton("Freeze scope")
+        self.freeze_button.setStyleSheet(self.button_style())
+        self.freeze_button.clicked.connect(self.toggle_freeze)
+        self.button_layout.addWidget(self.freeze_button)
+        self.frozen = False
+
 
     def button_style(self):
         return """
@@ -136,13 +148,38 @@ class OscilloscopeWindow(QMainWindow):
             }
         """
 
+    def toggle_recording(self):
+        """
+        Button logic for record-button
+        """
+        self.recording = not self.recording
+        if self.recording:
+            self.record_button.setText("Stop Recording")
+            # Add logic to start the oscilloscope
+        else:
+            self.record_button.setText("Start Recording")
+            # Add logic to stop the oscilloscope
+    
+    def toggle_freeze(self):
+        """
+        Button logic for freeze button
+        """
+        self.frozen = not self.frozen
+        if self.frozen:
+            self.freeze_button.setText("Unfreeze Scope")
+            # Add logic to start the oscilloscope
+        else:
+            self.freeze_button.setText("Freeze Scope")
+            # Add logic to stop the oscilloscope
+
     def update_plot(self, analog_value):
         self.ydata.append(analog_value)
 
         if len(self.ydata) > self.num_samples:
             self.ydata = self.ydata[-self.num_samples:]
 
-        try:
-            self.plot.setData(self.xdata, self.ydata)
-        except Exception as e:
-            self.plot.setData(self.xdata[0:len(self.ydata)], self.ydata)
+        if not self.frozen:  # Data should not be updated visually when scope is frozen
+            try:
+                self.plot.setData(self.xdata, self.ydata)
+            except Exception as e:
+                self.plot.setData(self.xdata[0:len(self.ydata)], self.ydata)
